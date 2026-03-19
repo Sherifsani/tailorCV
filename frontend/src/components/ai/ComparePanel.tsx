@@ -73,6 +73,7 @@ export default function ComparePanel({ result }: Props) {
             modelKey={key}
             modelName={name}
             result={result[key]}
+            resultId={result.id}
             isSelected={selectedModel === key}
             onSelect={() => handleSelect(key)}
           />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Copy, Check, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, AlertCircle, FileText } from 'lucide-react';
 import { ModelResult } from '@/pages/ComparePage';
 import FitScoreBadge from './FitScoreBadge';
+import ResumeEditorModal from './ResumeEditorModal';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   modelKey: 'gpt' | 'claude' | 'gemini';
   result: ModelResult;
   isSelected: boolean;
+  resultId: string; // kept for future use (cover letter download etc.)
   onSelect: () => void;
 }
 
@@ -18,9 +20,10 @@ const MODEL_COLORS = {
   gemini: 'border-t-[#4285f4]',
 };
 
-export default function ModelCard({ modelName, modelKey, result, isSelected, onSelect }: Props) {
+export default function ModelCard({ modelName, modelKey, result, isSelected, resultId: _resultId, onSelect }: Props) {
   const [expanded, setExpanded] = useState<'resume' | 'cover' | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const copy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
@@ -114,7 +117,14 @@ export default function ModelCard({ modelName, modelKey, result, isSelected, onS
         })}
       </div>
 
-      <div className="p-3 border-t bg-muted/30">
+      <div className="p-3 border-t bg-muted/30 space-y-2">
+        <button
+          onClick={() => setShowPreview(true)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium border bg-background hover:bg-accent transition-colors"
+        >
+          <FileText size={12} />
+          View & Download Resume
+        </button>
         <button
           onClick={onSelect}
           className={cn(
@@ -127,6 +137,14 @@ export default function ModelCard({ modelName, modelKey, result, isSelected, onS
           {isSelected ? 'Selected' : 'Use This Version'}
         </button>
       </div>
+
+      {showPreview && (
+        <ResumeEditorModal
+          initialText={data.tailoredResume}
+          modelName={modelName}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </div>
   );
 }
