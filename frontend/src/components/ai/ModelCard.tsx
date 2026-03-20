@@ -10,7 +10,8 @@ interface Props {
   modelKey: 'gpt' | 'claude' | 'gemini';
   result: ModelResult;
   isSelected: boolean;
-  resultId: string; // kept for future use (cover letter download etc.)
+  resultId: string;
+  candidateName?: string;
   onSelect: () => void;
 }
 
@@ -20,7 +21,7 @@ const MODEL_COLORS = {
   gemini: 'border-t-[#4285f4]',
 };
 
-export default function ModelCard({ modelName, modelKey, result, isSelected, resultId: _resultId, onSelect }: Props) {
+export default function ModelCard({ modelName, modelKey, result, isSelected, resultId: _resultId, candidateName, onSelect }: Props) {
   const [expanded, setExpanded] = useState<'resume' | 'cover' | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -142,6 +143,7 @@ export default function ModelCard({ modelName, modelKey, result, isSelected, res
         <ResumeEditorModal
           initialText={data.tailoredResume}
           modelName={modelName}
+          candidateName={candidateName}
           onClose={() => setShowPreview(false)}
         />
       )}

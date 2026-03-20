@@ -1,7 +1,7 @@
 export interface ParsedEntry {
   type: 'subheading' | 'bullet' | 'text';
   main: string;
-  meta?: string; // date range, company, location — extracted from right side
+  meta?: string;
 }
 
 export interface ParsedSection {
@@ -15,53 +15,59 @@ export interface ParsedResume {
   sections: ParsedSection[];
 }
 
+// Lines to ignore entirely
+const META_HEADERS = new Set(['RESUME', 'CV', 'CURRICULUM VITAE', 'CURRICULUM-VITAE']);
+
+// Only match exact known section keywords — no all-caps heuristic
 const SECTION_TITLES = new Set([
   'SUMMARY', 'OBJECTIVE', 'PROFILE', 'ABOUT',
-  'EXPERIENCE', 'WORK EXPERIENCE', 'PROFESSIONAL EXPERIENCE', 'EMPLOYMENT',
-  'EDUCATION', 'ACADEMIC BACKGROUND',
-  'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES', 'COMPETENCIES',
-  'PROJECTS', 'PERSONAL PROJECTS', 'PORTFOLIO',
-  'CERTIFICATIONS', 'CERTIFICATES', 'LICENSES',
-  'AWARDS', 'HONORS', 'ACHIEVEMENTS',
+  'EXPERIENCE', 'WORK EXPERIENCE', 'PROFESSIONAL EXPERIENCE', 'EMPLOYMENT', 'WORK HISTORY',
+  'EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC HISTORY',
+  'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES', 'COMPETENCIES', 'KEY SKILLS',
+  'PROJECTS', 'PERSONAL PROJECTS', 'PORTFOLIO', 'NOTABLE PROJECTS',
+  'CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'CERTIFICATIONS & LICENSES',
+  'AWARDS', 'HONORS', 'ACHIEVEMENTS', 'HONORS & AWARDS',
   'PUBLICATIONS', 'RESEARCH',
   'LANGUAGES',
-  'INTERESTS', 'HOBBIES',
-  'REFERENCES', 'VOLUNTEER', 'VOLUNTEERING',
+  'INTERESTS', 'HOBBIES', 'ACTIVITIES',
+  'REFERENCES', 'VOLUNTEER', 'VOLUNTEERING', 'VOLUNTEER EXPERIENCE',
   'CONTACT', 'CONTACT INFORMATION',
 ]);
 
 function isSectionTitle(line: string): boolean {
   const clean = line.replace(/:$/, '').trim().toUpperCase();
-  if (SECTION_TITLES.has(clean)) return true;
-  // All-caps short line with no numbers
-  if (clean === line.toUpperCase() && clean.length < 40 && !/\d/.test(clean) && clean.length > 3) return true;
-  return false;
+  return SECTION_TITLES.has(clean);
 }
 
 function isContactLine(line: string): boolean {
   return (
-    /\S+@\S+\.\S+/.test(line) ||           // email
-    /\+?\d[\d\s\-().]{7,}/.test(line) ||   // phone
+    /\S+@\S+\.\S+/.test(line) ||
+    /\+?\d[\d\s\-().]{7,}/.test(line) ||
     /linkedin\.com|github\.com|gitlab\.com|portfolio|website/i.test(line) ||
-    /^[\w\s,]+,\s*[A-Z]{2}/.test(line)     // City, ST
+    /^[\w\s]+,\s*[A-Z]{2}(\s+\d{5})?$/.test(line)
   );
 }
 
-function splitMeta(line: string): { main: string; meta?: string } {
-  // "Software Engineer | Acme Corp | Jan 2022 – Present"
-  // "B.S. Computer Science | MIT | 2018 – 2022"
-  const parts = line.split(/\s{2,}|\s*\|\s*|\s*—\s*|\s*[-–]\s*(?=\d{4}|Present|Current)/i);
-  if (parts.length >= 2) {
-    const last = parts[parts.length - 1].trim();
-    const isDate = /\d{4}|present|current|now/i.test(last);
-    if (isDate) {
-      return { main: parts.slice(0, -1).join(' | '), meta: last };
-    }
-  }
-  return { main: line };
+// Only extract meta (date) if there's a clear date pattern on the right side
+function extractDate(line: string): { main: string; meta: string } | null {
+  // Match patterns like "Jan 2020 – Present", "2018 - 2022", "May 2021"
+  const datePattern = /\s{2,}|\s*[|\u2013\u2014]\s*(?=\w)/;
+  const parts = line.split(datePattern);
+
+  if (parts.length < 2) return null;
+
+  const last = parts[parts.length - 1].trim();
+  const isDate = /(\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b.*\d{4}|\d{4}\s*[-\u2013]\s*(\d{4}|present|current|now)|\d{4}\s*[-\u2013]\s*present)/i.test(last);
+
+  if (!isDate) return null;
+
+  return {
+    main: parts.slice(0, -1).join(' ').trim(),
+    meta: last,
+  };
 }
 
-export function parseResume(text: string): ParsedResume {
+export function parseResume(text: string, overrideName?: string): ParsedResume {
   const lines = text.split('\n').map((l) => l.trim());
   let name = '';
   const contact: string[] = [];
@@ -73,21 +79,22 @@ export function parseResume(text: string): ParsedResume {
   for (const line of lines) {
     if (!line) continue;
 
-    // --- Name: first meaningful non-contact line ---
+    // Skip document meta headers
+    if (META_HEADERS.has(line.toUpperCase())) continue;
+
+    // Extract name — first short non-contact, non-section line
     if (!headerDone && !name && !isSectionTitle(line) && !isContactLine(line) && line.length < 60) {
       name = line;
       continue;
     }
 
-    // --- Contact lines before first section ---
+    // Contact lines before first section
     if (!headerDone && !isSectionTitle(line)) {
-      if (isContactLine(line) || (name && !currentSection)) {
-        contact.push(line);
-        continue;
-      }
+      contact.push(line);
+      continue;
     }
 
-    // --- Section heading ---
+    // Section heading
     if (isSectionTitle(line)) {
       headerDone = true;
       currentSection = { title: line.replace(/:$/, '').trim().toUpperCase(), entries: [] };
@@ -96,31 +103,27 @@ export function parseResume(text: string): ParsedResume {
     }
 
     headerDone = true;
-
     if (!currentSection) {
       currentSection = { title: '', entries: [] };
       sections.push(currentSection);
     }
 
-    // --- Bullet ---
-    if (/^[-•*▪]\s/.test(line)) {
-      currentSection.entries.push({ type: 'bullet', main: line.replace(/^[-•*▪]\s*/, '') });
+    // Bullet point
+    if (/^[-•*▪◦]\s/.test(line)) {
+      currentSection.entries.push({ type: 'bullet', main: line.replace(/^[-•*▪◦]\s*/, '') });
       continue;
     }
 
-    // --- Subheading (bold-like lines: job titles, degree names) ---
-    const { main, meta } = splitMeta(line);
-    const looksLikeSubheading =
-      line.length < 100 &&
-      !/^[a-z]/.test(line) && // doesn't start lowercase
-      (meta !== undefined || /\b(engineer|developer|manager|director|analyst|designer|intern|lead|senior|junior|head|vp|cto|ceo|founder|consultant|architect|scientist|researcher|assistant|associate|specialist)/i.test(line));
-
-    if (looksLikeSubheading) {
-      currentSection.entries.push({ type: 'subheading', main, meta });
-    } else {
-      currentSection.entries.push({ type: 'text', main: line });
+    // Subheading: ONLY if we can extract a clear date from the line
+    const dated = extractDate(line);
+    if (dated) {
+      currentSection.entries.push({ type: 'subheading', main: dated.main, meta: dated.meta });
+      continue;
     }
+
+    // Everything else is plain text
+    currentSection.entries.push({ type: 'text', main: line });
   }
 
-  return { name: name || 'Resume', contact, sections };
+  return { name: overrideName || name || 'Resume', contact, sections };
 }

@@ -19,7 +19,7 @@ Rules:
 - fitScore: 0-100 integer representing how well the candidate fits the role AFTER tailoring
 - strengths: 3-5 specific matching points between the resume and JD
 - gaps: 3-5 skills or experiences the JD requires that are missing or weak in the resume
-- tailoredResume: rewrite the resume to maximize ATS keyword matching for this specific job, preserve all facts
+- tailoredResume: rewrite the resume to maximize ATS keyword matching for this specific job, preserve all facts. Start directly with the candidate's name on the first line — do NOT add a heading like "RESUME" or "CV"
 - coverLetter: address the specific company and role, highlight top 3 matching strengths
 - reasoning: explain the fit score briefly
 

@@ -13,10 +13,11 @@ const TEMPLATES: { id: TemplateId; label: string; description: string; accent: s
 interface Props {
   initialText: string;
   modelName: string;
+  candidateName?: string;
   onClose: () => void;
 }
 
-export default function ResumeEditorModal({ initialText, modelName, onClose }: Props) {
+export default function ResumeEditorModal({ initialText, modelName, candidateName, onClose }: Props) {
   const [text, setText] = useState(initialText);
   const [template, setTemplate] = useState<TemplateId>('jakes');
   const [previewHtml, setPreviewHtml] = useState('');
@@ -34,7 +35,7 @@ export default function ResumeEditorModal({ initialText, modelName, onClose }: P
       const res = await fetch('/api/v1/ai/resume/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ text, template }),
+        body: JSON.stringify({ text, template, name: candidateName }),
       });
       const html = await res.text();
       setPreviewHtml(html);
@@ -50,7 +51,7 @@ export default function ResumeEditorModal({ initialText, modelName, onClose }: P
       const res = await fetch('/api/v1/ai/resume/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ text, template }),
+        body: JSON.stringify({ text, template, name: candidateName }),
       });
       if (!res.ok) throw new Error('Failed');
       const blob = await res.blob();

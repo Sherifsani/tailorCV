@@ -149,12 +149,13 @@ export async function downloadPdf(req: AuthRequest, res: Response, next: NextFun
 const resumeRenderSchema = z.object({
   text: z.string().min(10),
   template: z.enum(['classic', 'jakes', 'minimal']).default('jakes'),
+  name: z.string().optional(),
 });
 
 export async function previewResume(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { text, template } = resumeRenderSchema.parse(req.body);
-    const parsed = parseResume(text);
+    const { text, template, name } = resumeRenderSchema.parse(req.body);
+    const parsed = parseResume(text, name);
     const html = renderTemplate(template as TemplateId, parsed);
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
@@ -165,8 +166,8 @@ export async function previewResume(req: AuthRequest, res: Response, next: NextF
 
 export async function downloadResumePdf(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { text, template } = resumeRenderSchema.parse(req.body);
-    const parsed = parseResume(text);
+    const { text, template, name } = resumeRenderSchema.parse(req.body);
+    const parsed = parseResume(text, name);
     const html = renderTemplate(template as TemplateId, parsed);
     const pdf = await htmlToPdf(html);
 
