@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { AICompareResult } from '@/pages/ComparePage';
 import ModelCard from './ModelCard';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -19,6 +19,8 @@ const MODELS = [
 
 export default function ComparePanel({ result }: Props) {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const candidateName = user?.name || user?.email;
@@ -28,7 +30,18 @@ export default function ComparePanel({ result }: Props) {
     await api.patch(`/ai/results/${result.id}/select`, { model });
   };
 
-  // Only show models that actually ran (filter out "not configured" ones)
+  const handleSaveApplication = async () => {
+    setSaving(true);
+    try {
+      await api.post('/tracker/from-result', { aiResultId: result.id });
+      setSaved(true);
+    } catch {
+      navigate('/tracker', { state: { aiResultId: result.id } });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const activeModels = MODELS.filter(
     (m) => !(result[m.key].error?.toLowerCase().includes('not configured'))
   );
@@ -59,13 +72,27 @@ export default function ComparePanel({ result }: Props) {
           </p>
         </div>
         {selectedModel && (
-          <button
-            onClick={() => navigate('/tracker', { state: { aiResultId: result.id } })}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90"
-          >
-            <ClipboardList size={14} />
-            Save Application
-          </button>
+          saved ? (
+            <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+              <Check size={14} />
+              Saved!
+              <button
+                onClick={() => navigate('/tracker')}
+                className="ml-2 text-primary underline underline-offset-4 text-xs"
+              >
+                View in tracker
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleSaveApplication}
+              disabled={saving}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <ClipboardList size={14} />}
+              {saving ? 'Saving...' : 'Save Application'}
+            </button>
+          )
         )}
       </div>
 

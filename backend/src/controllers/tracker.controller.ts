@@ -27,6 +27,43 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
   }
 }
 
+export async function createFromResult(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { aiResultId } = z.object({ aiResultId: z.string() }).parse(req.body);
+    const userId = req.user!.id;
+
+    const aiResult = await prisma.aIResult.findFirst({
+      where: { id: aiResultId },
+      include: {
+        resume: { select: { userId: true, id: true } },
+        jobDescription: true,
+      },
+    });
+
+    if (!aiResult || aiResult.resume.userId !== userId) {
+      res.status(404).json({ error: 'AI result not found' });
+      return;
+    }
+
+    const jd = aiResult.jobDescription;
+    const app = await prisma.application.create({
+      data: {
+        userId,
+        resumeId: aiResult.resumeId,
+        aiResultId,
+        company: jd.company || 'Unknown Company',
+        jobTitle: jd.title || 'Unknown Role',
+        jobUrl: jd.sourceUrl ?? undefined,
+        status: 'applied',
+      },
+    });
+
+    res.status(201).json(app);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listApplications(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const apps = await prisma.application.findMany({
