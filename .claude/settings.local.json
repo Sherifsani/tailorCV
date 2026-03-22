@@ -4,7 +4,8 @@
       "Bash(npx tsc:*)",
       "Bash(sed -i \"s/content: ''\\\\\\\\B7''/content: ''·''/g\" src/services/templates/classic.ts)",
       "Bash(sed -i \"s/content: ''  \\\\\\\\2014  ''/content: ''  —  ''/g\" src/services/templates/minimal.ts)",
-      "Bash(sed -i \"s/content: ''\\\\\\\\2013''/content: ''–''/g\" src/services/templates/minimal.ts)"
+      "Bash(sed -i \"s/content: ''\\\\\\\\2013''/content: ''–''/g\" src/services/templates/minimal.ts)",
+      "Bash(npx puppeteer:*)"
     ]
   }
 }
