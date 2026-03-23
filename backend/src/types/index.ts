@@ -7,11 +7,14 @@ export interface AuthRequest extends Request {
   };
 }
 
+import { ResumeData } from './resume';
+export { ResumeData };
+
 export interface ModelOutput {
   fitScore: number;
   strengths: string[];
   gaps: string[];
-  tailoredResume: string;
+  resume: ResumeData;   // structured — replaces flat tailoredResume string
   coverLetter: string;
   reasoning: string;
 }

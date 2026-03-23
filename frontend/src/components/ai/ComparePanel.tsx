@@ -5,7 +5,6 @@ import { AICompareResult } from '@/pages/ComparePage';
 import ModelCard from './ModelCard';
 import { ClipboardList, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/authStore';
 
 interface Props {
   result: AICompareResult;
@@ -22,9 +21,6 @@ export default function ComparePanel({ result }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const candidateName = user?.name || user?.email;
-
   const handleSelect = async (model: string) => {
     setSelectedModel(model);
     await api.patch(`/ai/results/${result.id}/select`, { model });
@@ -104,7 +100,6 @@ export default function ComparePanel({ result }: Props) {
             modelName={name}
             result={result[key]}
             resultId={result.id}
-            candidateName={candidateName}
             isSelected={selectedModel === key}
             onSelect={() => handleSelect(key)}
           />

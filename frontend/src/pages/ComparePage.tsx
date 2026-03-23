@@ -17,11 +17,20 @@ export interface ModelResult {
   error: string | null;
 }
 
+export interface ResumeData {
+  name: string;
+  contact: string[];
+  sections: Array<{
+    title: string;
+    items: unknown[];
+  }>;
+}
+
 export interface ModelOutput {
   fitScore: number;
   strengths: string[];
   gaps: string[];
-  tailoredResume: string;
+  resume: ResumeData;
   coverLetter: string;
   reasoning: string;
 }

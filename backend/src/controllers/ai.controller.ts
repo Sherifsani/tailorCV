@@ -2,11 +2,12 @@ import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { AuthRequest } from '../types';
 import { runComparison } from '../services/ai';
+import { scoreResume } from '../services/ai/score';
+import { generateInterviewPrep } from '../services/ai/interview';
 import { prisma } from '../lib/prisma';
 import { aiProviders } from '../config/env';
-import { generateResumePdf } from '../services/pdf.service';
 import { ModelOutput } from '../types';
-import { parseResume } from '../services/resume-parser.service';
+import { ResumeData } from '../types/resume';
 import { renderTemplate, TemplateId } from '../services/templates/index';
 import { htmlToPdf } from '../services/puppeteer.service';
 
@@ -127,36 +128,41 @@ export async function downloadPdf(req: AuthRequest, res: Response, next: NextFun
     const parsed = JSON.parse(outputMap[model]) as { data?: ModelOutput; error?: string } | ModelOutput;
     const output: ModelOutput | null = 'data' in parsed && parsed.data ? parsed.data : parsed as ModelOutput;
 
-    if (!output?.tailoredResume) {
+    if (!output?.resume) {
       res.status(400).json({ error: 'No tailored resume available for this model' });
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true } });
     const jobLabel = [result.jobDescription.company, result.jobDescription.title].filter(Boolean).join(' - ');
     const filename = `resume-${model}-${jobLabel || 'tailored'}.pdf`.replace(/\s+/g, '_').slice(0, 80);
 
+    const html = renderTemplate('jakes', output.resume as ResumeData);
+    const pdf = await htmlToPdf(html);
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-    const pdfStream = generateResumePdf(output.tailoredResume, user?.name ?? undefined);
-    pdfStream.pipe(res);
+    res.send(pdf);
   } catch (err) {
     next(err);
   }
 }
 
 const resumeRenderSchema = z.object({
-  text: z.string().min(10),
+  resumeData: z.object({
+    name: z.string(),
+    contact: z.array(z.string()),
+    sections: z.array(z.object({
+      title: z.string(),
+      items: z.array(z.any()),
+    })),
+  }),
   template: z.enum(['classic', 'jakes', 'minimal']).default('jakes'),
-  name: z.string().optional(),
 });
 
 export async function previewResume(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { text, template, name } = resumeRenderSchema.parse(req.body);
-    const parsed = parseResume(text, name);
-    const html = renderTemplate(template as TemplateId, parsed);
+    const { resumeData, template } = resumeRenderSchema.parse(req.body);
+    const html = renderTemplate(template as TemplateId, resumeData as ResumeData);
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (err) {
@@ -166,14 +172,107 @@ export async function previewResume(req: AuthRequest, res: Response, next: NextF
 
 export async function downloadResumePdf(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { text, template, name } = resumeRenderSchema.parse(req.body);
-    const parsed = parseResume(text, name);
-    const html = renderTemplate(template as TemplateId, parsed);
+    const { resumeData, template } = resumeRenderSchema.parse(req.body);
+    const html = renderTemplate(template as TemplateId, resumeData as ResumeData);
     const pdf = await htmlToPdf(html);
 
-    const filename = `${parsed.name.replace(/\s+/g, '_')}_resume_${template}.pdf`;
+    const filename = `${resumeData.name.replace(/\s+/g, '_')}_resume_${template}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdf);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function scoreOriginal(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { resumeId, jobDescriptionId } = z.object({
+      resumeId: z.string(),
+      jobDescriptionId: z.string(),
+    }).parse(req.body);
+
+    const [resume, jd] = await Promise.all([
+      prisma.resume.findFirst({ where: { id: resumeId, userId: req.user!.id } }),
+      prisma.jobDescription.findFirst({ where: { id: jobDescriptionId, userId: req.user!.id } }),
+    ]);
+
+    if (!resume || !jd) { res.status(404).json({ error: 'Resume or JD not found' }); return; }
+
+    const result = await scoreResume(resume.parsedText, jd.rawText);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function interviewPrep(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const result = await prisma.aIResult.findFirst({
+      where: { id: req.params.id },
+      include: {
+        resume: true,
+        jobDescription: true,
+      },
+    });
+
+    if (!result || result.resume.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Result not found' });
+      return;
+    }
+
+    const questions = await generateInterviewPrep(result.resume.parsedText, result.jobDescription.rawText);
+    res.json({ questions });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadCoverLetterPdf(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { text, candidateName } = z.object({
+      text: z.string().min(10),
+      candidateName: z.string().optional(),
+    }).parse(req.body);
+
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const paragraphs = escaped.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 11pt;
+    color: #111;
+    background: #fff;
+    padding: 48pt 56pt;
+    line-height: 1.7;
+  }
+  .name {
+    font-size: 14pt;
+    font-weight: 600;
+    margin-bottom: 24pt;
+    color: #000;
+  }
+  p { margin-bottom: 12pt; }
+  p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  ${candidateName ? `<div class="name">${candidateName}</div>` : ''}
+  ${paragraphs}
+</body>
+</html>`;
+
+    const pdf = await htmlToPdf(html);
+    const safeName = (candidateName ?? 'cover_letter').replace(/\s+/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}_cover_letter.pdf"`);
     res.send(pdf);
   } catch (err) {
     next(err);

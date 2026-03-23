@@ -1,66 +1,67 @@
-import { ParsedEntry } from '../resume-parser.service';
+import { EntryItem, ResumeSection } from '../../types/resume';
 
-// Shared entry renderer used by all three templates
-// Injects CSS class names so each template can style them differently
-export function renderEntries(entries: ParsedEntry[]): string {
-  const out: string[] = [];
-  let i = 0;
-
-  while (i < entries.length) {
-    const e = entries[i];
-
-    if (e.type === 'subheading') {
-      // Row 1: bold org + date (right)
-      out.push(`
-        <div class="entry-head">
-          <span class="entry-org">${e.main}</span>
-          <span class="entry-date">${e.meta ?? ''}</span>
-        </div>`);
-
-      // Row 2: the very next text line (if present and short) is treated as role/location
-      const next = entries[i + 1];
-      if (next && next.type === 'text' && next.main.length < 100) {
-        const locMatch = extractLocation(next.main);
-        out.push(`
-        <div class="entry-subhead">
-          <span class="entry-role">${locMatch.role}</span>
-          <span class="entry-location">${locMatch.location}</span>
-        </div>`);
-        i += 2;
-      } else {
-        i++;
-      }
-      continue;
-    }
-
-    if (e.type === 'bullet') {
-      const bullets: string[] = [];
-      while (i < entries.length && entries[i].type === 'bullet') {
-        bullets.push(`<li>${entries[i].main}</li>`);
-        i++;
-      }
-      out.push(`<ul class="bullets">${bullets.join('')}</ul>`);
-      continue;
-    }
-
-    // Plain text
-    out.push(`<p class="text-line">${e.main}</p>`);
-    i++;
-  }
-
-  return out.join('');
+// Convert **bold** markers → <strong>
+export function bold(text: string): string {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-// Split "Software Engineer | New York, NY" into role + location
-function extractLocation(line: string): { role: string; location: string } {
-  const sep = /\s*[|,]\s*(?=[A-Z])/;
-  const parts = line.split(sep);
-  if (parts.length >= 2) {
-    const last = parts[parts.length - 1].trim();
-    // Looks like a location if short and doesn't start lowercase
-    if (last.length < 40 && !/^[a-z]/.test(last)) {
-      return { role: parts.slice(0, -1).join(', '), location: last };
-    }
+export function renderItem(item: EntryItem): string {
+  switch (item.type) {
+    case 'subheading':
+      return `
+        <div class="subheading">
+          <div class="sh-row1">
+            <span class="sh-org">${bold(item.org)}</span>
+            <span class="sh-date">${bold(item.date)}</span>
+          </div>
+          ${(item.role || item.location) ? `
+          <div class="sh-row2">
+            <span class="sh-role">${bold(item.role)}</span>
+            <span class="sh-location">${bold(item.location)}</span>
+          </div>` : ''}
+          ${item.bullets?.length ? `
+          <ul class="bullets">
+            ${item.bullets.map(b => `<li>${bold(b)}</li>`).join('')}
+          </ul>` : ''}
+        </div>`;
+
+    case 'project':
+      return `
+        <div class="project">
+          <div class="sh-row1">
+            <span class="proj-name">${bold(item.name)}</span>
+            <span class="proj-tech">${bold(item.tech)}</span>
+          </div>
+          ${item.bullets?.length ? `
+          <ul class="bullets">
+            ${item.bullets.map(b => `<li>${bold(b)}</li>`).join('')}
+          </ul>` : ''}
+        </div>`;
+
+    case 'skills':
+      return `
+        <div class="skills-block">
+          ${item.rows.map(r => `
+            <div class="skills-row">
+              <span class="skills-label">${r.label}:</span>
+              <span class="skills-value">${r.value}</span>
+            </div>`).join('')}
+        </div>`;
+
+    case 'bullets':
+      return `
+        <ul class="bullets">
+          ${item.bullets.map(b => `<li>${bold(b)}</li>`).join('')}
+        </ul>`;
   }
-  return { role: line, location: '' };
+}
+
+export function renderSection(section: ResumeSection): string {
+  return `
+    <div class="section">
+      <div class="section-title">${section.title}</div>
+      <div class="section-body">
+        ${section.items.map(renderItem).join('')}
+      </div>
+    </div>`;
 }

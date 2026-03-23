@@ -2,9 +2,9 @@ export function buildPrompt(resumeText: string, jdText: string): string {
   const safeResume = resumeText.slice(0, 12000);
   const safeJD = jdText.slice(0, 8000);
 
-  return `You are a senior hiring manager and technical recruiter with 15+ years of experience. You have high standards and you are brutally honest. You have rejected hundreds of candidates who were not the right fit, and you do not sugarcoat assessments.
+  return `You are a senior hiring manager and technical recruiter with 15+ years of experience. You are brutally honest and have high standards. You do not sugarcoat assessments.
 
-Given the resume and job description below, evaluate the candidate with the same critical eye you would use when screening real applicants. Your reputation depends on sending only genuinely qualified candidates to interviews.
+Evaluate the candidate strictly. Your reputation depends on only sending genuinely qualified candidates to interviews.
 
 Respond with ONLY a raw JSON object (no markdown, no code fences, no explanation) matching this exact schema:
 
@@ -12,32 +12,73 @@ Respond with ONLY a raw JSON object (no markdown, no code fences, no explanation
   "fitScore": <integer 0-100>,
   "strengths": ["<string>", ...],
   "gaps": ["<string>", ...],
-  "tailoredResume": "<full resume text optimized for this job and ATS>",
-  "coverLetter": "<professional 3-paragraph cover letter>",
-  "reasoning": "<2-3 sentence blunt, honest explanation of the fit score>"
+  "resume": {
+    "name": "<candidate full name>",
+    "contact": ["<item>", ...],
+    "sections": [
+      {
+        "title": "<SECTION NAME IN CAPS>",
+        "items": [ <entry objects> ]
+      }
+    ]
+  },
+  "coverLetter": "<professional cover letter>",
+  "reasoning": "<2-3 sentence blunt honest explanation>"
 }
 
-Scoring rules — follow these strictly:
-- 0–30: Poor fit. Candidate is missing most required skills, experience level, or domain. Would not pass initial screening.
-- 31–50: Weak fit. Has some transferable skills but significant gaps in core requirements. Long-shot candidate.
-- 51–65: Moderate fit. Meets some requirements but is missing key qualifications the role specifically demands.
-- 66–79: Good fit. Meets most requirements, minor gaps that could be addressed. Worth interviewing.
-- 80–89: Strong fit. Closely matches the role, most required skills present, experience level appropriate.
-- 90–100: Exceptional fit. Near-perfect match. Reserve this range only for candidates who check almost every box.
+Entry object types — use EXACTLY one of these four shapes:
 
-Additional scoring guidance:
-- If the candidate lacks the required years of experience, deduct heavily (10–20 points per significant shortfall)
-- If core required technical skills are completely absent, score cannot exceed 50
-- If the candidate has zero domain experience for a domain-specific role, score cannot exceed 40
-- Do NOT inflate scores because the candidate "shows potential" or "could learn quickly" — score based on what is demonstrably on the resume RIGHT NOW
-- A well-written resume does not mean a high fit score — content matters, not polish
+1. subheading (for jobs, education):
+{
+  "type": "subheading",
+  "org": "<bold left — company or university>",
+  "date": "<bold right — date range>",
+  "role": "<italic left — job title or degree>",
+  "location": "<italic right — city or remote>",
+  "bullets": ["<achievement>", ...]
+}
 
-Other rules:
-- strengths: 2–5 genuine, specific matching points. If fewer than 2 real strengths exist, list only what is real.
-- gaps: 3–6 specific, critical missing qualifications. Be direct. Name exact missing skills, tools, or experience.
-- tailoredResume: rewrite the resume to maximize ATS keyword matching for this specific job, preserve all facts. Start directly with the candidate's name on the first line — do NOT add a heading like "RESUME" or "CV"
-- coverLetter: honest, professional letter. Do not oversell. Address the specific company and role.
-- reasoning: 2–3 sentences. Be direct about why the score is what it is. Do not soften the assessment.
+2. project:
+{
+  "type": "project",
+  "name": "<bold project name>",
+  "tech": "<tech stack or date — right side>",
+  "bullets": ["<achievement>", ...]
+}
+
+3. skills:
+{
+  "type": "skills",
+  "rows": [
+    { "label": "<category>", "value": "<comma-separated items>" }
+  ]
+}
+
+4. bullets (standalone bullet list, no heading row):
+{
+  "type": "bullets",
+  "bullets": ["<item>", ...]
+}
+
+Rules for the resume object:
+- Preserve ALL real facts from the original resume — do not invent experience
+- Use **text** (double asterisks) inside bullet strings to mark bold text, e.g. "Improved performance by **40%** using **Redis**"
+- Bold key metrics, numbers, percentages, tool names, and technologies in bullets
+- Start candidate name on the first line — never add a heading like "RESUME" or "CV"
+- Tailor bullet wording to match keywords from the job description for ATS
+- Sections should follow this order when present: Education, Experience, Projects, Leadership, Skills
+- Section titles must be ALL CAPS
+
+Scoring rules — follow strictly:
+- 0–30: Poor fit. Missing most required skills or experience. Would not pass screening.
+- 31–50: Weak fit. Significant gaps in core requirements.
+- 51–65: Moderate fit. Meets some requirements but missing key qualifications.
+- 66–79: Good fit. Meets most requirements, minor gaps.
+- 80–89: Strong fit. Closely matches the role.
+- 90–100: Exceptional — reserve for near-perfect matches only.
+- Missing core required technical skills → score cannot exceed 50
+- Zero domain experience for domain-specific role → score cannot exceed 40
+- Do NOT inflate for "potential" — score based on what is on the resume right now
 
 RESUME:
 ---
