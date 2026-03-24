@@ -4,10 +4,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/compare', icon: Sparkles, label: 'Compare & Tailor' },
-  { to: '/tracker', icon: ClipboardList, label: 'Applications' },
-  { to: '/roadmap', icon: Map, label: 'Roadmaps' },
+  { to: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/app/compare', icon: Sparkles, label: 'Compare & Tailor' },
+  { to: '/app/tracker', icon: ClipboardList, label: 'Applications' },
+  { to: '/app/roadmap', icon: Map, label: 'Roadmaps' },
 ];
 
 interface Props {

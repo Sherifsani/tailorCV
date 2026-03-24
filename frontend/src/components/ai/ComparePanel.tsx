@@ -37,7 +37,7 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
       await api.post('/tracker/from-result', { aiResultId: result.id });
       setSaved(true);
     } catch {
-      navigate('/tracker', { state: { aiResultId: result.id } });
+      navigate('/app/tracker', { state: { aiResultId: result.id } });
     } finally {
       setSaving(false);
     }
@@ -106,7 +106,7 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
             <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
               <Check size={13} />
               Saved!
-              <button onClick={() => navigate('/tracker')} className="ml-1 text-primary underline underline-offset-4 text-xs">
+              <button onClick={() => navigate('/app/tracker')} className="ml-1 text-primary underline underline-offset-4 text-xs">
                 View tracker
               </button>
             </div>
@@ -151,7 +151,7 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
           <div className="flex items-center gap-2 text-green-600 text-sm font-medium shrink-0">
             <Check size={13} />
             Saved!
-            <button onClick={() => navigate('/roadmap')} className="ml-1 text-primary underline underline-offset-4 text-xs">
+            <button onClick={() => navigate('/app/roadmap')} className="ml-1 text-primary underline underline-offset-4 text-xs">
               View roadmaps
             </button>
           </div>

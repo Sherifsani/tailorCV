@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import JobInputPanel from '@/components/jobs/JobInputPanel';
 import ComparePanel from '@/components/ai/ComparePanel';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp, Sparkles, FileText, ClipboardList, Map, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface AICompareResult {
   id: string;
@@ -40,6 +41,21 @@ export interface OriginalScore {
   summary: string;
 }
 
+const TIPS = [
+  { icon: FileText, tip: 'Use a focused 1-page resume for the best AI tailoring results.' },
+  { icon: Sparkles, tip: 'Models score independently — the highest fit wins, not the most verbose.' },
+  { icon: Map, tip: 'After comparing, generate a Learning Roadmap to close skill gaps fast.' },
+  { icon: ClipboardList, tip: 'Save applications to the Tracker directly from compare results.' },
+];
+
+const LOADING_MSGS = [
+  'Sending to GPT-4o…',
+  'Sending to Claude Sonnet…',
+  'Sending to Gemini 2.0 Flash…',
+  'Scoring fit against JD…',
+  'Compiling results…',
+];
+
 export default function ComparePage() {
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [pendingJdId, setPendingJdId] = useState<string | null>(null);
@@ -48,6 +64,7 @@ export default function ComparePage() {
   const [result, setResult] = useState<AICompareResult | null>(null);
   const [comparing, setComparing] = useState(false);
   const [error, setError] = useState('');
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   const { data: resumes = [] } = useQuery({
     queryKey: ['resumes'],
@@ -59,6 +76,16 @@ export default function ComparePage() {
       setSelectedResumeId(resumes[0].id);
     }
   }, [resumes]);
+
+  // Cycle loading messages while comparing
+  useEffect(() => {
+    if (!comparing) return;
+    setLoadingMsgIdx(0);
+    const iv = setInterval(() => {
+      setLoadingMsgIdx((i) => (i + 1) % LOADING_MSGS.length);
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [comparing]);
 
   const handleCompare = async (jobDescriptionId: string) => {
     if (!selectedResumeId) { setError('Please select a resume first'); return; }
@@ -90,24 +117,27 @@ export default function ComparePage() {
       <div>
         <h2 className="text-xl md:text-2xl font-bold">Compare & Tailor</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Run GPT-4o, Claude, and Gemini in parallel — pick the best result.
+          Run GPT-4o, Claude Sonnet, and Gemini 2.0 Flash in parallel — pick the best result.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left panel */}
         <div className="lg:col-span-1 space-y-4">
+          {/* Resume selector */}
           <div>
             <label className="text-sm font-medium block mb-2">Select Resume</label>
             {resumes.length === 0 ? (
-              <p className="text-sm text-muted-foreground bg-muted/40 rounded-lg p-3">
-                Upload a resume on the dashboard first.
-              </p>
+              <div className="border-2 border-dashed rounded-xl p-4 text-center space-y-2">
+                <FileText size={24} className="text-muted-foreground/40 mx-auto" />
+                <p className="text-sm text-muted-foreground">No resumes uploaded yet.</p>
+                <p className="text-xs text-muted-foreground/60">Go to Dashboard to upload a resume first.</p>
+              </div>
             ) : (
               <select
                 value={selectedResumeId}
                 onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary transition"
               >
                 <option value="">— choose resume —</option>
                 {resumes.map((r: any) => (
@@ -121,22 +151,36 @@ export default function ComparePage() {
 
           {/* Original score */}
           {(scoringOriginal || originalScore) && (
-            <div className="border rounded-xl p-4 bg-muted/20">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={13} className="text-muted-foreground" />
-                <span className="text-xs font-medium">Original Resume Score</span>
+            <div className="border rounded-xl p-4 bg-card">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                  <TrendingUp size={12} className="text-muted-foreground" />
+                </div>
+                <span className="text-xs font-semibold">Original Resume Score</span>
               </div>
               {scoringOriginal ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 size={11} className="animate-spin" /> Scoring...
+                  <Loader2 size={11} className="animate-spin" /> Scoring your resume…
                 </div>
               ) : originalScore && (
                 <>
-                  <p className="text-3xl font-bold">
-                    {originalScore.score}
-                    <span className="text-sm font-normal text-muted-foreground">/100</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 italic leading-relaxed">
+                  <div className="flex items-end gap-2 mb-2">
+                    <p className="text-4xl font-black">{originalScore.score}</p>
+                    <p className="text-sm text-muted-foreground mb-1">/100</p>
+                    <div className="flex-1 mb-2">
+                      <div className="h-2 bg-muted rounded-full">
+                        <div
+                          className={cn(
+                            'h-2 rounded-full transition-all',
+                            originalScore.score >= 70 ? 'bg-green-500' :
+                            originalScore.score >= 50 ? 'bg-amber-500' : 'bg-red-400'
+                          )}
+                          style={{ width: `${originalScore.score}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed italic">
                     {originalScore.summary}
                   </p>
                 </>
@@ -145,24 +189,78 @@ export default function ComparePage() {
           )}
 
           {error && (
-            <p className="text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+            <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          {/* Tips */}
+          {!result && !comparing && (
+            <div className="border rounded-xl p-4 bg-card space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tips</p>
+              <div className="space-y-3">
+                {TIPS.map(({ icon: Icon, tip }, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon size={10} className="text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{tip}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
         {/* Results panel */}
         <div className="lg:col-span-2">
           {comparing ? (
-            <div className="flex flex-col items-center justify-center h-64 gap-3 border-2 border-dashed rounded-xl">
-              <Loader2 size={32} className="animate-spin text-primary" />
-              <p className="text-muted-foreground text-sm font-medium">Running AI models in parallel...</p>
-              <p className="text-xs text-muted-foreground">This takes 20–40 seconds</p>
+            <div className="flex flex-col items-center justify-center h-72 gap-5 border-2 border-dashed rounded-2xl bg-muted/10">
+              {/* Model indicators */}
+              <div className="flex items-center gap-3">
+                {[
+                  { name: 'GPT-4o', color: 'bg-green-400' },
+                  { name: 'Claude', color: 'bg-blue-400' },
+                  { name: 'Gemini', color: 'bg-purple-400' },
+                ].map(({ name, color }) => (
+                  <div key={name} className="flex flex-col items-center gap-2">
+                    <div className={cn('w-3 h-3 rounded-full animate-pulse', color)} />
+                    <span className="text-[10px] text-muted-foreground">{name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Loader2 size={20} className="animate-spin text-primary" />
+                <p className="text-sm font-medium text-muted-foreground">{LOADING_MSGS[loadingMsgIdx]}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Typically takes 20–40 seconds</p>
             </div>
           ) : result ? (
             <ComparePanel result={result} originalScore={originalScore} jobDescriptionId={pendingJdId!} />
           ) : (
-            <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl gap-2">
-              <p className="text-muted-foreground text-sm font-medium">No results yet</p>
-              <p className="text-xs text-muted-foreground">Select a resume and add a job description to get started.</p>
+            <div className="flex flex-col items-center justify-center h-72 border-2 border-dashed rounded-2xl gap-4 bg-muted/10 px-6">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Sparkles size={24} className="text-primary" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold">Ready to tailor</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                  Select a resume, paste or link a job description, and three AI models will tailor it simultaneously.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-400" />GPT-4o
+                </span>
+                <ArrowRight size={10} />
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />Claude
+                </span>
+                <ArrowRight size={10} />
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />Gemini
+                </span>
+              </div>
             </div>
           )}
         </div>

@@ -38,7 +38,7 @@ export default function AuthPage() {
     try {
       const res = await api.post(`/auth/${mode}`, data);
       setAuth(res.data.token, res.data.user);
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       setError(err.response?.data?.error ?? 'Something went wrong');
     }
@@ -47,26 +47,45 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex flex-col justify-between bg-[#0f172a] text-white p-12">
-        <div className="flex items-center gap-2">
+      <div className="hidden lg:flex flex-col justify-between bg-[#0f172a] text-white p-12 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-[10%] left-[-5%] w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative flex items-center gap-2">
           <Sparkles size={20} className="text-blue-400" />
           <span className="text-lg font-semibold tracking-tight">tailorCV</span>
         </div>
 
-        <div className="space-y-6">
+        <div className="relative space-y-8">
           <blockquote className="text-2xl font-medium leading-snug text-white/90">
             "Stop sending the same resume to every job. Let AI make every application your best one."
           </blockquote>
-          <div className="flex gap-4 text-sm text-white/50">
-            <span>GPT-4o</span>
-            <span>·</span>
-            <span>Claude</span>
-            <span>·</span>
-            <span>Gemini</span>
+
+          {/* Feature list */}
+          <ul className="space-y-3">
+            {[
+              'Three AI models compared side-by-side',
+              'Before & after fit score for every role',
+              'Download-ready PDFs in one click',
+              'Skill gap roadmaps to close the gap fast',
+              'Kanban board to track your pipeline',
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-2.5 text-sm text-white/70">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex gap-3 text-xs text-white/40">
+            <span className="px-2 py-1 rounded border border-white/10 bg-white/5">GPT-4o</span>
+            <span className="px-2 py-1 rounded border border-white/10 bg-white/5">Claude Sonnet</span>
+            <span className="px-2 py-1 rounded border border-white/10 bg-white/5">Gemini 2.0</span>
           </div>
         </div>
 
-        <div className="flex gap-6 text-xs text-white/30">
+        <div className="relative flex gap-6 text-xs text-white/30">
           <span>Privacy Policy</span>
           <span>Terms of Service</span>
         </div>
