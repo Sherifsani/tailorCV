@@ -15,6 +15,7 @@ model User {
   createdAt    DateTime      @default(now())
   resumes      Resume[]
   applications Application[]
+  roadmaps     Roadmap[]
 }
 
 model Resume {
@@ -54,6 +55,18 @@ model AIResult {
   createdAt        DateTime       @default(now())
 
   @@index([resumeId, jobDescriptionId])
+}
+
+model Roadmap {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiResultId  String?
+  jobTitle    String?
+  company     String?
+  summary     String
+  gaps        String   // JSON: RoadmapGap[]
+  createdAt   DateTime @default(now())
 }
 
 model Application {

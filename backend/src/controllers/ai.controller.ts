@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AuthRequest } from '../types';
 import { runComparison } from '../services/ai';
 import { scoreResume } from '../services/ai/score';
-import { generateInterviewPrep } from '../services/ai/interview';
+import { generateRoadmap } from '../services/ai/interview';
 import { prisma } from '../lib/prisma';
 import { aiProviders } from '../config/env';
 import { ModelOutput } from '../types';
@@ -221,8 +221,8 @@ export async function interviewPrep(req: AuthRequest, res: Response, next: NextF
       return;
     }
 
-    const questions = await generateInterviewPrep(result.resume.parsedText, result.jobDescription.rawText);
-    res.json({ questions });
+    const roadmap = await generateRoadmap(result.resume.parsedText, result.jobDescription.rawText);
+    res.json(roadmap);
   } catch (err) {
     next(err);
   }

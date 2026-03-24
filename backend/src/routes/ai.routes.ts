@@ -3,7 +3,7 @@ import { authenticate } from '../middleware/auth';
 import {
   compare, getResult, selectModel, downloadPdf,
   previewResume, downloadResumePdf, downloadCoverLetterPdf,
-  scoreOriginal, interviewPrep, healthCheck,
+  scoreOriginal, healthCheck,
 } from '../controllers/ai.controller';
 
 const router = Router();
@@ -16,7 +16,6 @@ router.post('/score', scoreOriginal as any);
 router.get('/results/:id', getResult as any);
 router.patch('/results/:id/select', selectModel as any);
 router.get('/results/:id/pdf', downloadPdf as any);
-router.post('/results/:id/interview-prep', interviewPrep as any);
 router.post('/resume/preview', previewResume as any);
 router.post('/resume/pdf', downloadResumePdf as any);
 router.post('/cover-letter/pdf', downloadCoverLetterPdf as any);

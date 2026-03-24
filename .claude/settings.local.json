@@ -7,7 +7,9 @@
       "Bash(sed -i \"s/content: ''\\\\\\\\2013''/content: ''–''/g\" src/services/templates/minimal.ts)",
       "Bash(npx puppeteer:*)",
       "Bash(curl -s http://localhost:3001/health)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(PRISMA_MIGRATE_SKIP_GENERATE=1 npx prisma db push 2>&1)"
     ]
   }
 }

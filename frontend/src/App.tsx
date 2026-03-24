@@ -4,6 +4,7 @@ import AuthPage from '@/pages/AuthPage';
 import DashboardPage from '@/pages/DashboardPage';
 import ComparePage from '@/pages/ComparePage';
 import TrackerPage from '@/pages/TrackerPage';
+import RoadmapPage from '@/pages/RoadmapPage';
 import AppShell from '@/components/layout/AppShell';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -27,6 +28,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="tracker" element={<TrackerPage />} />
+          <Route path="roadmap" element={<RoadmapPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

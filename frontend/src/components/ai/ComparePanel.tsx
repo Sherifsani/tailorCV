@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { AICompareResult } from '@/pages/ComparePage';
+import { AICompareResult, OriginalScore } from '@/pages/ComparePage';
 import ModelCard from './ModelCard';
-import { ClipboardList, Check, Loader2 } from 'lucide-react';
+import { ClipboardList, Check, Loader2, ArrowRight, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props {
   result: AICompareResult;
+  originalScore: OriginalScore | null;
+  jobDescriptionId: string;
 }
 
 const MODELS = [
@@ -16,11 +18,26 @@ const MODELS = [
   { key: 'gemini' as const, name: 'Gemini 2.0 Flash' },
 ];
 
-export default function ComparePanel({ result }: Props) {
+export default function ComparePanel({ result, originalScore, jobDescriptionId: _jobDescriptionId }: Props) {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
+  const [roadmapSaved, setRoadmapSaved] = useState(false);
   const navigate = useNavigate();
+
+  const handleGenerateRoadmap = async () => {
+    setGeneratingRoadmap(true);
+    try {
+      await api.post('/roadmap', { aiResultId: result.id });
+      setRoadmapSaved(true);
+    } catch {
+      alert('Failed to generate roadmap. Please try again.');
+    } finally {
+      setGeneratingRoadmap(false);
+    }
+  };
+
   const handleSelect = async (model: string) => {
     setSelectedModel(model);
     await api.patch(`/ai/results/${result.id}/select`, { model });
@@ -54,18 +71,38 @@ export default function ComparePanel({ result }: Props) {
     'grid-cols-3';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Header with before/after score */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold">AI Results</h3>
-          <p className="text-xs text-muted-foreground">
-            Fit score: <span className="font-bold text-foreground">{maxScore}%</span>
-            {skippedModels.length > 0 && (
-              <span className="ml-2 text-muted-foreground/60">
-                · {skippedModels.map(m => m.name).join(', ')} not configured
-              </span>
+          <div className="flex items-center gap-2 mt-0.5">
+            {originalScore ? (
+              <div className="flex items-center gap-1.5 text-sm">
+                <span className="text-muted-foreground">Original:</span>
+                <span className="font-semibold text-muted-foreground">{originalScore.score}</span>
+                <ArrowRight size={13} className="text-muted-foreground" />
+                <span className="text-muted-foreground">Best tailored:</span>
+                <span className={cn('font-bold', maxScore >= originalScore.score ? 'text-green-600' : 'text-red-500')}>
+                  {maxScore}
+                </span>
+                {maxScore > originalScore.score && (
+                  <span className="text-xs text-green-600 font-medium">
+                    (+{maxScore - originalScore.score})
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Best fit score: <span className="font-bold text-foreground">{maxScore}%</span>
+                {skippedModels.length > 0 && (
+                  <span className="ml-2 text-muted-foreground/60">
+                    · {skippedModels.map(m => m.name).join(', ')} not configured
+                  </span>
+                )}
+              </p>
             )}
-          </p>
+          </div>
         </div>
         {selectedModel && (
           saved ? (
@@ -92,6 +129,7 @@ export default function ComparePanel({ result }: Props) {
         )}
       </div>
 
+      {/* Model cards */}
       <div className={cn('grid gap-4', gridCols)}>
         {activeModels.map(({ key, name }) => (
           <ModelCard
@@ -104,6 +142,36 @@ export default function ComparePanel({ result }: Props) {
             onSelect={() => handleSelect(key)}
           />
         ))}
+      </div>
+
+      {/* Roadmap action */}
+      <div className="flex items-center justify-between border rounded-lg px-4 py-3 bg-muted/20">
+        <div className="flex items-center gap-2">
+          <Map size={14} className="text-primary" />
+          <span className="text-sm font-medium">Learning Roadmap</span>
+          <span className="text-xs text-muted-foreground">· Identify skill gaps and get a study plan</span>
+        </div>
+        {roadmapSaved ? (
+          <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+            <Check size={13} />
+            Saved!
+            <button
+              onClick={() => navigate('/roadmap')}
+              className="ml-1 text-primary underline underline-offset-4 text-xs"
+            >
+              View roadmaps
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleGenerateRoadmap}
+            disabled={generatingRoadmap}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors"
+          >
+            {generatingRoadmap ? <Loader2 size={12} className="animate-spin" /> : <Map size={12} />}
+            {generatingRoadmap ? 'Generating...' : 'Generate Roadmap'}
+          </button>
+        )}
       </div>
     </div>
   );

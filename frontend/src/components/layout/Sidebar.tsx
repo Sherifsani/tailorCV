@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Sparkles, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Sparkles, ClipboardList, Map, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/compare', icon: Sparkles, label: 'Compare & Tailor' },
   { to: '/tracker', icon: ClipboardList, label: 'Applications' },
+  { to: '/roadmap', icon: Map, label: 'Roadmaps' },
 ];
 
 export default function Sidebar() {

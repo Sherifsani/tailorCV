@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { env } from '../../config/env';
-import { aiProviders } from '../../config/env';
+import { env, aiProviders } from '../../config/env';
 
 let genAI: GoogleGenerativeAI | null = null;
 function getGemini() {
@@ -8,26 +7,45 @@ function getGemini() {
   return genAI;
 }
 
-export interface InterviewQA {
-  question: string;
-  answer: string;
-  type: 'behavioral' | 'technical' | 'situational';
+export interface RoadmapGap {
+  skill: string;
+  priority: 'critical' | 'important' | 'nice-to-have';
+  why: string;
+  steps: string[];
+  resources: string[];
+  timeframe: string;
 }
 
-function buildInterviewPrompt(resumeText: string, jdText: string): string {
-  return `You are an expert interview coach. Based on this resume and job description, generate 8 likely interview questions with concise model answers tailored to this candidate.
+export interface LearningRoadmap {
+  summary: string;
+  gaps: RoadmapGap[];
+}
 
-Respond with ONLY a raw JSON array:
-[
-  {
-    "question": "<the interview question>",
-    "answer": "<a strong, concise model answer in first person, 2-4 sentences, referencing specific experience from the resume where possible>",
-    "type": "behavioral" | "technical" | "situational"
-  }
-]
+function buildRoadmapPrompt(resumeText: string, jdText: string): string {
+  return `You are a senior engineering career coach. Analyze the gap between this candidate's resume and the job description, then produce a concrete learning roadmap to close those gaps.
 
-Mix of types: 3 behavioral, 3 technical (based on required skills in JD), 2 situational.
-Focus on gaps between the resume and JD — interviewers often probe those areas.
+Respond with ONLY a raw JSON object matching this exact schema:
+{
+  "summary": "<2 sentences: what the candidate is missing overall and the priority focus area>",
+  "gaps": [
+    {
+      "skill": "<skill or knowledge area>",
+      "priority": "critical" | "important" | "nice-to-have",
+      "why": "<1 sentence: why this gap matters specifically for this role>",
+      "steps": ["<concrete learning step>", ...],
+      "resources": ["<specific resource: course, doc, book, project>", ...],
+      "timeframe": "<realistic estimate e.g. '1-2 weeks', '1 month'>"
+    }
+  ]
+}
+
+Rules:
+- Include 3-6 gaps ordered by priority (critical first)
+- Only include real gaps — skills clearly required by JD but absent or weak in resume
+- Steps should be specific and actionable (not vague like "learn X")
+- Resources should be real and specific (e.g. "Kubernetes official docs — concepts section", "freeCodeCamp REST API course")
+- Timeframe should be realistic for someone studying part-time
+- If the candidate already meets all requirements, return 1 gap with skill "Polish & depth" and nice-to-have priority
 
 RESUME:
 ---
@@ -40,16 +58,16 @@ ${jdText.slice(0, 5000)}
 ---`;
 }
 
-export async function generateInterviewPrep(resumeText: string, jdText: string): Promise<InterviewQA[]> {
-  const prompt = buildInterviewPrompt(resumeText, jdText);
+export async function generateRoadmap(resumeText: string, jdText: string): Promise<LearningRoadmap> {
+  const prompt = buildRoadmapPrompt(resumeText, jdText);
 
   if (aiProviders.gemini) {
     const model = getGemini().getGenerativeModel({
       model: 'gemini-2.0-flash',
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.4, maxOutputTokens: 2000 },
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 2000 },
     });
     const result = await model.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    return JSON.parse(result.response.text()) as LearningRoadmap;
   }
 
   if (aiProviders.claude) {
@@ -61,7 +79,7 @@ export async function generateInterviewPrep(resumeText: string, jdText: string):
       messages: [{ role: 'user', content: prompt }],
     });
     const text = (msg.content[0] as any).text as string;
-    return JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
+    return JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim()) as LearningRoadmap;
   }
 
   if (aiProviders.gpt) {
@@ -71,13 +89,9 @@ export async function generateInterviewPrep(resumeText: string, jdText: string):
       model: 'gpt-4o-mini',
       max_tokens: 2000,
       response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'You return a JSON object with a "questions" array.' },
-        { role: 'user', content: prompt },
-      ],
+      messages: [{ role: 'user', content: prompt }],
     });
-    const parsed = JSON.parse(res.choices[0].message.content ?? '{}');
-    return parsed.questions ?? parsed;
+    return JSON.parse(res.choices[0].message.content ?? '{}') as LearningRoadmap;
   }
 
   throw new Error('No AI provider configured');
