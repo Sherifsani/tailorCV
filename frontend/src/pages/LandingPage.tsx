@@ -15,7 +15,7 @@ const FEATURES = [
   {
     icon: Target,
     title: 'Fit score before & after',
-    description: 'See your original resume's match score against the JD, then watch it climb after AI tailoring. Know exactly where you stand before applying.',
+    description: "See your original resume's match score against the JD, then watch it climb after AI tailoring. Know exactly where you stand before applying.",
     gradient: 'from-green-400/20 to-emerald-400/10',
     iconColor: 'text-green-500',
   },
@@ -51,7 +51,7 @@ const FEATURES = [
 
 const STEPS = [
   { step: '01', title: 'Upload your resume', description: 'Upload your existing PDF resume once. We extract the content and store it securely for future use.' },
-  { step: '02', title: 'Paste or link a job', description: 'Paste the job description directly or drop the URL — we'll scrape it automatically.' },
+  { step: '02', title: 'Paste or link a job', description: "Paste the job description directly or drop the URL — we'll scrape it automatically." },
   { step: '03', title: 'Compare AI results', description: 'Three models run in parallel in under a minute. Pick the version with the highest fit score.' },
   { step: '04', title: 'Download & apply', description: 'Export your tailored resume and cover letter as polished PDFs. Apply with confidence.' },
 ];
