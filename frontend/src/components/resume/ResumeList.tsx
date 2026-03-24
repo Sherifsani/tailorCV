@@ -27,23 +27,30 @@ export default function ResumeList({ resumes, onDeleted }: Props) {
   };
 
   if (!resumes.length) {
-    return <p className="text-sm text-muted-foreground">No resumes uploaded yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground py-2">No resumes uploaded yet.</p>
+    );
   }
 
   return (
     <ul className="space-y-2">
       {resumes.map((r) => (
-        <li key={r.id} className="flex items-center justify-between p-3 bg-card border rounded-md">
-          <div className="flex items-center gap-2">
-            <FileText size={14} className="text-muted-foreground" />
-            <span className="text-sm truncate max-w-[180px]">{r.filename}</span>
+        <li key={r.id} className="flex items-center justify-between p-3 bg-card border rounded-lg hover:bg-accent/30 transition-colors group">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <FileText size={14} className="text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm truncate">{r.filename}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {new Date(r.createdAt).toLocaleDateString()}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => handleDelete(r.id)}
             disabled={deleting === r.id}
-            className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+            className="shrink-0 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 p-1 rounded opacity-0 group-hover:opacity-100"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </button>
         </li>
       ))}

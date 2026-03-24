@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Sparkles, ClipboardList, Map, LogOut } from 'lucide-react';
+import { LayoutDashboard, Sparkles, ClipboardList, Map, LogOut, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 
@@ -10,25 +10,40 @@ const navItems = [
   { to: '/roadmap', icon: Map, label: 'Roadmaps' },
 ];
 
-export default function Sidebar() {
+interface Props {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: Props) {
   const { user, logout } = useAuthStore();
 
   return (
-    <aside className="w-60 border-r bg-card flex flex-col">
-      <div className="p-6 border-b">
-        <h1 className="text-xl font-bold text-primary">tailorCV</h1>
-        <p className="text-xs text-muted-foreground mt-1">Your application, optimized</p>
+    <aside className="w-64 h-full border-r bg-card flex flex-col">
+      <div className="p-5 border-b flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-primary">tailorCV</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Your application, optimized</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-md hover:bg-accent transition-colors"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
+            onClick={onClose}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -42,7 +57,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t">
-        <div className="text-xs text-muted-foreground mb-2 truncate">{user?.email}</div>
+        <p className="text-xs text-muted-foreground truncate mb-3">{user?.name ?? user?.email}</p>
         <button
           onClick={logout}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"

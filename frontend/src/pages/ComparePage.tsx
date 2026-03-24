@@ -66,8 +66,6 @@ export default function ComparePage() {
     setResult(null);
     setOriginalScore(null);
     setPendingJdId(jobDescriptionId);
-
-    // Score original resume first (non-blocking — runs in parallel with comparison)
     setScoringOriginal(true);
     setComparing(true);
 
@@ -79,10 +77,7 @@ export default function ComparePage() {
     setScoringOriginal(false);
     setComparing(false);
 
-    if (scoreRes.status === 'fulfilled') {
-      setOriginalScore(scoreRes.value.data);
-    }
-
+    if (scoreRes.status === 'fulfilled') setOriginalScore(scoreRes.value.data);
     if (compareRes.status === 'fulfilled') {
       setResult(compareRes.value.data);
     } else {
@@ -93,23 +88,26 @@ export default function ComparePage() {
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
-        <h2 className="text-2xl font-bold">Compare & Tailor</h2>
-        <p className="text-muted-foreground mt-1">
+        <h2 className="text-xl md:text-2xl font-bold">Compare & Tailor</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
           Run GPT-4o, Claude, and Gemini in parallel — pick the best result.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-1 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left panel */}
+        <div className="lg:col-span-1 space-y-4">
           <div>
             <label className="text-sm font-medium block mb-2">Select Resume</label>
             {resumes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Upload a resume on the dashboard first.</p>
+              <p className="text-sm text-muted-foreground bg-muted/40 rounded-lg p-3">
+                Upload a resume on the dashboard first.
+              </p>
             ) : (
               <select
                 value={selectedResumeId}
                 onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">— choose resume —</option>
                 {resumes.map((r: any) => (
@@ -121,10 +119,10 @@ export default function ComparePage() {
 
           <JobInputPanel onJobReady={handleCompare} disabled={comparing || !selectedResumeId} />
 
-          {/* Original score card */}
+          {/* Original score */}
           {(scoringOriginal || originalScore) && (
-            <div className="border rounded-lg p-3 bg-muted/30">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="border rounded-xl p-4 bg-muted/20">
+              <div className="flex items-center gap-2 mb-2">
                 <TrendingUp size={13} className="text-muted-foreground" />
                 <span className="text-xs font-medium">Original Resume Score</span>
               </div>
@@ -134,30 +132,37 @@ export default function ComparePage() {
                 </div>
               ) : originalScore && (
                 <>
-                  <p className="text-2xl font-bold">{originalScore.score}<span className="text-sm font-normal text-muted-foreground">/100</span></p>
-                  <p className="text-xs text-muted-foreground mt-1 italic">{originalScore.summary}</p>
+                  <p className="text-3xl font-bold">
+                    {originalScore.score}
+                    <span className="text-sm font-normal text-muted-foreground">/100</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 italic leading-relaxed">
+                    {originalScore.summary}
+                  </p>
                 </>
               )}
             </div>
           )}
 
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && (
+            <p className="text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+          )}
         </div>
 
-        <div className="col-span-2">
+        {/* Results panel */}
+        <div className="lg:col-span-2">
           {comparing ? (
-            <div className="flex flex-col items-center justify-center h-64 gap-3">
+            <div className="flex flex-col items-center justify-center h-64 gap-3 border-2 border-dashed rounded-xl">
               <Loader2 size={32} className="animate-spin text-primary" />
-              <p className="text-muted-foreground">Running GPT-4o, Claude & Gemini in parallel...</p>
+              <p className="text-muted-foreground text-sm font-medium">Running AI models in parallel...</p>
               <p className="text-xs text-muted-foreground">This takes 20–40 seconds</p>
             </div>
           ) : result ? (
             <ComparePanel result={result} originalScore={originalScore} jobDescriptionId={pendingJdId!} />
           ) : (
-            <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
-              <p className="text-muted-foreground text-sm">
-                Select a resume and add a job description to get started.
-              </p>
+            <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl gap-2">
+              <p className="text-muted-foreground text-sm font-medium">No results yet</p>
+              <p className="text-xs text-muted-foreground">Select a resume and add a job description to get started.</p>
             </div>
           )}
         </div>

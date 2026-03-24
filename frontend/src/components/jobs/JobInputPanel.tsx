@@ -24,18 +24,20 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
     setError('');
     setScrapeWarning('');
     setLoading(true);
-
     try {
       let res;
       if (mode === 'url') {
         res = await api.post('/jobs/scrape', { url });
         if (res.data.success === false) {
           setScrapeWarning(res.data.reason ?? 'Could not scrape this page. Please paste the text manually.');
-          setLoading(false);
           return;
         }
       } else {
-        res = await api.post('/jobs/manual', { text, title: title || undefined, company: company || undefined });
+        res = await api.post('/jobs/manual', {
+          text,
+          title: title || undefined,
+          company: company || undefined,
+        });
       }
       onJobReady(res.data.id);
     } catch (err: any) {
@@ -49,13 +51,14 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* Mode tabs */}
       <div className="flex gap-2">
         {(['paste', 'url'] as Mode[]).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
               mode === m
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
@@ -69,18 +72,18 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
 
       {mode === 'paste' ? (
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Job title (optional)"
-              className="border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               placeholder="Company (optional)"
-              className="border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <textarea
@@ -88,7 +91,7 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste the job description here..."
             rows={8}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           />
         </div>
       ) : (
@@ -97,7 +100,7 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://www.indeed.com/viewjob?jk=..."
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <p className="text-xs text-muted-foreground">
             Works best with Indeed. LinkedIn may require manual paste.
@@ -106,16 +109,18 @@ export default function JobInputPanel({ onJobReady, disabled }: Props) {
       )}
 
       {scrapeWarning && (
-        <p className="text-amber-600 text-xs bg-amber-50 border border-amber-200 rounded p-2">
+        <p className="text-amber-700 text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           {scrapeWarning}
         </p>
       )}
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && (
+        <p className="text-destructive text-xs bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+      )}
 
       <button
         onClick={handleSubmit}
         disabled={disabled || loading || !isReady}
-        className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+        className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
       >
         {loading && <Loader2 size={14} className="animate-spin" />}
         {loading ? 'Processing...' : 'Analyze with AI'}

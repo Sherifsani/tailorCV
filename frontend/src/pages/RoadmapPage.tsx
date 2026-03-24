@@ -51,11 +51,13 @@ function GapAccordion({ gap, defaultOpen = false }: { gap: RoadmapGap; defaultOp
           </div>
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{gap.why}</p>
         </div>
-        {open ? <ChevronUp size={13} className="shrink-0 text-muted-foreground" /> : <ChevronDown size={13} className="shrink-0 text-muted-foreground" />}
+        {open
+          ? <ChevronUp size={13} className="shrink-0 text-muted-foreground" />
+          : <ChevronDown size={13} className="shrink-0 text-muted-foreground" />}
       </button>
 
       {open && (
-        <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-4 bg-muted/10">
+        <div className="px-4 pb-4 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/10">
           <div>
             <p className="text-xs font-semibold mb-2">Action steps</p>
             <ol className="space-y-1.5">
@@ -92,23 +94,24 @@ function RoadmapCard({ roadmap, onDelete }: { roadmap: Roadmap; onDelete: () => 
 
   return (
     <div className="border rounded-xl overflow-hidden bg-card">
-      {/* Card header */}
       <div className="p-4 border-b">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {roadmap.company && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Building2 size={11} />{roadmap.company}
                 </span>
               )}
-              {roadmap.company && roadmap.jobTitle && <span className="text-muted-foreground/40 text-xs">·</span>}
-              {roadmap.jobTitle && <span className="text-sm font-semibold">{roadmap.jobTitle}</span>}
-              {!roadmap.jobTitle && !roadmap.company && (
-                <span className="text-sm font-semibold text-muted-foreground">Untitled Roadmap</span>
+              {roadmap.company && roadmap.jobTitle && (
+                <span className="text-muted-foreground/40 text-xs">·</span>
               )}
+              {roadmap.jobTitle
+                ? <span className="text-sm font-semibold">{roadmap.jobTitle}</span>
+                : !roadmap.company && <span className="text-sm font-semibold text-muted-foreground">Untitled Roadmap</span>
+              }
             </div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Calendar size={10} />{new Date(roadmap.createdAt).toLocaleDateString()}
               </span>
@@ -118,24 +121,25 @@ function RoadmapCard({ roadmap, onDelete }: { roadmap: Roadmap; onDelete: () => 
               )}
             </div>
           </div>
+
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-xs flex items-center gap-1 px-2.5 py-1.5 border rounded-md hover:bg-accent transition-colors"
+              className="text-xs flex items-center gap-1 px-2.5 py-1.5 border rounded-lg hover:bg-accent transition-colors"
             >
-              {expanded ? 'Collapse' : 'View Roadmap'}
+              {expanded ? 'Collapse' : 'View'}
               {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
             >
               <Trash2 size={13} />
             </button>
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground italic mt-2 leading-relaxed">{roadmap.summary}</p>
+        <p className="text-xs text-muted-foreground italic mt-2.5 leading-relaxed">{roadmap.summary}</p>
 
         {/* Priority pills */}
         <div className="flex gap-1.5 mt-3 flex-wrap">
@@ -150,7 +154,6 @@ function RoadmapCard({ roadmap, onDelete }: { roadmap: Roadmap; onDelete: () => 
         </div>
       </div>
 
-      {/* Expanded gaps */}
       {expanded && (
         <div className="p-4 space-y-2 bg-muted/10">
           {roadmap.gaps.map((gap, i) => (
@@ -176,21 +179,23 @@ export default function RoadmapPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-2xl font-bold">Learning Roadmaps</h2>
-        <p className="text-muted-foreground mt-1">
+        <h2 className="text-xl md:text-2xl font-bold">Learning Roadmaps</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
           Skill gap analyses generated from your AI comparisons.
         </p>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">
-          {[1, 2].map((i) => <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />)}
+          {[1, 2].map((i) => (
+            <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />
+          ))}
         </div>
       ) : roadmaps.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl gap-3">
-          <Map size={32} className="text-muted-foreground/40" />
+        <div className="flex flex-col items-center justify-center h-56 border-2 border-dashed rounded-xl gap-3">
+          <Map size={28} className="text-muted-foreground/40" />
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground">No roadmaps yet</p>
             <p className="text-xs text-muted-foreground/60 mt-1">

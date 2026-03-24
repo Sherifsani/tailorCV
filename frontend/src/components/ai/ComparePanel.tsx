@@ -26,18 +26,6 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
   const [roadmapSaved, setRoadmapSaved] = useState(false);
   const navigate = useNavigate();
 
-  const handleGenerateRoadmap = async () => {
-    setGeneratingRoadmap(true);
-    try {
-      await api.post('/roadmap', { aiResultId: result.id });
-      setRoadmapSaved(true);
-    } catch {
-      alert('Failed to generate roadmap. Please try again.');
-    } finally {
-      setGeneratingRoadmap(false);
-    }
-  };
-
   const handleSelect = async (model: string) => {
     setSelectedModel(model);
     await api.patch(`/ai/results/${result.id}/select`, { model });
@@ -55,6 +43,18 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
     }
   };
 
+  const handleGenerateRoadmap = async () => {
+    setGeneratingRoadmap(true);
+    try {
+      await api.post('/roadmap', { aiResultId: result.id });
+      setRoadmapSaved(true);
+    } catch {
+      alert('Failed to generate roadmap. Please try again.');
+    } finally {
+      setGeneratingRoadmap(false);
+    }
+  };
+
   const activeModels = MODELS.filter(
     (m) => !(result[m.key].error?.toLowerCase().includes('not configured'))
   );
@@ -67,62 +67,56 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
 
   const gridCols =
     activeModels.length === 1 ? 'grid-cols-1 max-w-md' :
-    activeModels.length === 2 ? 'grid-cols-2' :
-    'grid-cols-3';
+    activeModels.length === 2 ? 'sm:grid-cols-2' :
+    'sm:grid-cols-2 lg:grid-cols-3';
 
   return (
     <div className="space-y-5">
-      {/* Header with before/after score */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="font-semibold">AI Results</h3>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {originalScore ? (
-              <div className="flex items-center gap-1.5 text-sm">
-                <span className="text-muted-foreground">Original:</span>
-                <span className="font-semibold text-muted-foreground">{originalScore.score}</span>
-                <ArrowRight size={13} className="text-muted-foreground" />
-                <span className="text-muted-foreground">Best tailored:</span>
-                <span className={cn('font-bold', maxScore >= originalScore.score ? 'text-green-600' : 'text-red-500')}>
+              <div className="flex items-center gap-1.5 text-sm flex-wrap">
+                <span className="text-muted-foreground text-xs">Original:</span>
+                <span className="font-semibold text-muted-foreground text-xs">{originalScore.score}</span>
+                <ArrowRight size={11} className="text-muted-foreground" />
+                <span className="text-muted-foreground text-xs">Best:</span>
+                <span className={cn('font-bold text-sm', maxScore >= originalScore.score ? 'text-green-600' : 'text-red-500')}>
                   {maxScore}
                 </span>
                 {maxScore > originalScore.score && (
-                  <span className="text-xs text-green-600 font-medium">
-                    (+{maxScore - originalScore.score})
-                  </span>
+                  <span className="text-xs text-green-600 font-medium">(+{maxScore - originalScore.score})</span>
                 )}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Best fit score: <span className="font-bold text-foreground">{maxScore}%</span>
+                Best: <span className="font-bold text-foreground">{maxScore}%</span>
                 {skippedModels.length > 0 && (
-                  <span className="ml-2 text-muted-foreground/60">
-                    · {skippedModels.map(m => m.name).join(', ')} not configured
-                  </span>
+                  <span className="ml-2 opacity-60">· {skippedModels.map(m => m.name).join(', ')} not configured</span>
                 )}
               </p>
             )}
           </div>
         </div>
+
         {selectedModel && (
           saved ? (
             <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-              <Check size={14} />
+              <Check size={13} />
               Saved!
-              <button
-                onClick={() => navigate('/tracker')}
-                className="ml-2 text-primary underline underline-offset-4 text-xs"
-              >
-                View in tracker
+              <button onClick={() => navigate('/tracker')} className="ml-1 text-primary underline underline-offset-4 text-xs">
+                View tracker
               </button>
             </div>
           ) : (
             <button
               onClick={handleSaveApplication}
               disabled={saving}
-              className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
             >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <ClipboardList size={14} />}
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <ClipboardList size={13} />}
               {saving ? 'Saving...' : 'Save Application'}
             </button>
           )
@@ -130,7 +124,7 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
       </div>
 
       {/* Model cards */}
-      <div className={cn('grid gap-4', gridCols)}>
+      <div className={cn('grid grid-cols-1 gap-4', gridCols)}>
         {activeModels.map(({ key, name }) => (
           <ModelCard
             key={key}
@@ -145,20 +139,19 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
       </div>
 
       {/* Roadmap action */}
-      <div className="flex items-center justify-between border rounded-lg px-4 py-3 bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Map size={14} className="text-primary" />
-          <span className="text-sm font-medium">Learning Roadmap</span>
-          <span className="text-xs text-muted-foreground">· Identify skill gaps and get a study plan</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded-xl px-4 py-3 bg-muted/20">
+        <div>
+          <div className="flex items-center gap-2">
+            <Map size={14} className="text-primary" />
+            <span className="text-sm font-medium">Learning Roadmap</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">Identify skill gaps and get a personalised study plan</p>
         </div>
         {roadmapSaved ? (
-          <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+          <div className="flex items-center gap-2 text-green-600 text-sm font-medium shrink-0">
             <Check size={13} />
             Saved!
-            <button
-              onClick={() => navigate('/roadmap')}
-              className="ml-1 text-primary underline underline-offset-4 text-xs"
-            >
+            <button onClick={() => navigate('/roadmap')} className="ml-1 text-primary underline underline-offset-4 text-xs">
               View roadmaps
             </button>
           </div>
@@ -166,7 +159,7 @@ export default function ComparePanel({ result, originalScore, jobDescriptionId: 
           <button
             onClick={handleGenerateRoadmap}
             disabled={generatingRoadmap}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
           >
             {generatingRoadmap ? <Loader2 size={12} className="animate-spin" /> : <Map size={12} />}
             {generatingRoadmap ? 'Generating...' : 'Generate Roadmap'}
